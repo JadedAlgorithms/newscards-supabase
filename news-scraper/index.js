@@ -1,5 +1,5 @@
 const Parser = require('rss-parser');
-const admin = require('firebase-admin');
+const { createClient } = require('@supabase/supabase-js');
 const cheerio = require('cheerio');
 const sanitizeHtml = require('sanitize-html');
 const Sentiment = require('sentiment');
@@ -52,22 +52,18 @@ class CategoryClassifier {
 
 const classifier = new CategoryClassifier();
 
-// Initialize Firebase Admin
-let serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-if (serviceAccountPath && !path.isAbsolute(serviceAccountPath)) {
-  serviceAccountPath = path.resolve(__dirname, serviceAccountPath);
-}
-const serviceAccount = serviceAccountPath ? require(serviceAccountPath) : null;
+// Initialize Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (serviceAccount || process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  admin.initializeApp({
-    credential: serviceAccount ? admin.credential.cert(serviceAccount) : admin.credential.applicationDefault()
-  });
-} else {
-  console.warn("No Firebase credentials found. Running in dry-run mode.");
+const supabase = (supabaseUrl && supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
+
+if (!supabase) {
+  console.warn("No Supabase credentials found. Running in dry-run mode.");
 }
 
-const db = admin.apps.length ? admin.firestore() : null;
 const parser = new Parser();
 
 const SOURCES = require('./sources.json');
@@ -154,66 +150,40 @@ async function run() {
     console.error("Failed to save data locally:", err);
   }
 
-  if (db) {
+  if (supabase) {
     try {
-      const newsCollection = db.collection('news');
+      // Delete old articles beyond the 500 limit
+      const { data: oldArticles } = await supabase
+        .from('news')
+        .select('id')
+        .order('fetched_at', { ascending: false })
+        .range(500, 99999);
 
-      // Limit collection size and deduplicate
-      // We will keep max 500 latest documents
-      const snapshot = await newsCollection.orderBy('fetchedAt', 'desc').get();
-
-      const existingUrls = new Set();
-      const deleteBatch = db.batch();
-      let deleteCount = 0;
-
-      snapshot.docs.forEach((doc, index) => {
-        const data = doc.data();
-        if (data.link) existingUrls.add(data.link);
-
-        // Remove older documents exceeding limit
-        if (index >= 500) {
-          deleteBatch.delete(doc.ref);
-          deleteCount++;
-        }
-      });
-
-      if (deleteCount > 0) {
-        // Can only commit 500 per batch. For a 500 cap, we likely won't exceed.
-        // Doing a simple commit. (Wait, if there are 1000 items, and index>=500, we delete 500. It's on the edge.)
-        await deleteBatch.commit();
-        console.log(`Deleted ${deleteCount} older articles to maintain limit.`);
+      if (oldArticles && oldArticles.length > 0) {
+        const idsToDelete = oldArticles.map(a => a.id);
+        await supabase.from('news').delete().in('id', idsToDelete);
+        console.log(`Deleted ${idsToDelete.length} older articles to maintain limit.`);
       }
 
-      const insertBatch = db.batch();
-      let insertCount = 0;
+      // Upsert new articles (link is UNIQUE, so duplicates are skipped)
+      const toInsert = allArticles.map(a => ({
+        title: a.title,
+        link: a.link,
+        description: a.description,
+        pub_date: a.pubDate,
+        source: a.source,
+        category: a.category,
+        bias_score: a.biasScore
+      }));
 
-      for (const article of allArticles) {
-        if (!existingUrls.has(article.link)) {
-          const docRef = newsCollection.doc();
-          insertBatch.set(docRef, {
-            ...article,
-            fetchedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          existingUrls.add(article.link);
-          insertCount++;
+      const { error } = await supabase
+        .from('news')
+        .upsert(toInsert, { onConflict: 'link', ignoreDuplicates: true });
 
-          if (insertCount >= 400) {
-            // Stop inserting to avoid batch limit (500 MAX ops). 
-            // Highly unlikely to hit in a single run with 20 items per source and 9 sources (180 total)
-            break;
-          }
-        }
-      }
-
-      if (insertCount > 0) {
-        await insertBatch.commit();
-        console.log(`Successfully added ${insertCount} new unbiased articles.`);
-      } else {
-        console.log("No new articles to add.");
-      }
-
+      if (error) throw error;
+      console.log(`Upserted ${toInsert.length} articles.`);
     } catch (error) {
-      console.error("Error updating Firestore:", error);
+      console.error("Error updating Supabase:", error);
     }
   } else {
     console.log("Dry run complete. No database connection.");

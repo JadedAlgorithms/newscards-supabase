@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase } from './supabase';
 import Deck from './components/Deck';
 import './App.css';
 
-// Fallback data in case Firebase is empty or fails
+// Fallback data in case Supabase is empty or fails
 
 
 const CATEGORIES = ['national', 'international', 'business', 'science', 'tech', 'sports'];
@@ -33,13 +32,15 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const newsQuery = query(collection(db, 'news'));
-      const snapshot = await getDocs(newsQuery);
+      const { data: rows, error: fetchError } = await supabase
+        .from('news')
+        .select('*');
 
-      let fetchedNews = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let title = data.title || '';
-        let description = data.description || '';
+      if (fetchError) throw fetchError;
+
+      let fetchedNews = rows.map(row => {
+        let title = row.title || '';
+        let description = row.description || '';
 
         // Filter out trailing "Reuters" found in existing data
         const reutersRegex = /\s*[-–—]?\s*Reuters\s*$/i;
@@ -47,10 +48,14 @@ function App() {
         if (description) description = description.replace(reutersRegex, '').trim();
 
         return {
-          id: doc.id,
-          ...data,
+          id: row.id,
           title,
-          description
+          description,
+          link: row.link,
+          pubDate: row.pub_date,
+          source: row.source,
+          category: row.category,
+          biasScore: row.bias_score
         };
       });
 
@@ -60,7 +65,7 @@ function App() {
         setNews(fetchedNews);
       }
     } catch (err) {
-      console.error('Error fetching from Firestore:', err);
+      console.error('Error fetching from Supabase:', err);
       setError('Failed to load news. Please try again later.');
     } finally {
       setLoading(false);

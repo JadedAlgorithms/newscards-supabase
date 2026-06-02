@@ -27,6 +27,9 @@ jobs:
 
       - name: Build Frontend
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy to Build Branch
         uses: peaceiris/actions-gh-pages@v4
@@ -35,27 +38,3 @@ jobs:
           publish_dir: ./dist
           publish_branch: build
           force_orphan: true
-
-  deploy-firebase:
-    name: Deploy Firestore
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: projects/352130536158/locations/global/workloadIdentityPools/github-pool/providers/github
-          service_account: firebase-adminsdk-fbsvc@newscards-6564e.iam.gserviceaccount.com
-
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Deploy Firebase Firestore
-        run: firebase deploy --only firestore --project newscards-6564e
