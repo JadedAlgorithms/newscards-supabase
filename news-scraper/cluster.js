@@ -1,0 +1,211 @@
+/**
+ * cluster.js — TF-IDF + Cosine Similarity article clustering
+ * 
+ * Groups articles about the same story together using:
+ * 1. TF-IDF vectorization (via `natural` package)
+ * 2. Cosine similarity between article vectors
+ * 3. Agglomerative clustering with a configurable threshold
+ * 
+ * Each resulting cluster represents one "story" covered by one or more sources.
+ */
+
+const natural = require('natural');
+const TfIdf = natural.TfIdf;
+const stopwords = natural.stopwords;
+
+// Similarity threshold: articles with cosine similarity >= this are grouped together.
+// 0.25 is intentionally permissive — catches same-story articles with different wording.
+const SIMILARITY_THRESHOLD = 0.25;
+
+/**
+ * Tokenize and clean text for TF-IDF processing.
+ * Removes stopwords, punctuation, and short tokens.
+ */
+function tokenize(text) {
+  if (!text) return [];
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopwords.includes(w));
+}
+
+/**
+ * Compute cosine similarity between two term-frequency maps.
+ */
+function cosineSimilarity(vecA, vecB) {
+  const allTerms = new Set([...Object.keys(vecA), ...Object.keys(vecB)]);
+  let dotProduct = 0;
+  let magA = 0;
+  let magB = 0;
+
+  for (const term of allTerms) {
+    const a = vecA[term] || 0;
+    const b = vecB[term] || 0;
+    dotProduct += a * b;
+    magA += a * a;
+    magB += b * b;
+  }
+
+  if (magA === 0 || magB === 0) return 0;
+  return dotProduct / (Math.sqrt(magA) * Math.sqrt(magB));
+}
+
+/**
+ * Build TF-IDF vectors for all articles.
+ * Returns an array of { articleIndex, vector } objects.
+ */
+function buildVectors(articles) {
+  const tfidf = new TfIdf();
+
+  // Add each article as a document
+  for (const article of articles) {
+    const text = `${article.title || ''} ${article.title || ''} ${article.description || ''}`;
+    // Title is doubled to weigh it more heavily — titles are the strongest signal for same-story matching
+    tfidf.addDocument(tokenize(text).join(' '));
+  }
+
+  // Extract TF-IDF vectors
+  const vectors = [];
+  for (let i = 0; i < articles.length; i++) {
+    const vector = {};
+    tfidf.listTerms(i).forEach(item => {
+      vector[item.term] = item.tfidf;
+    });
+    vectors.push(vector);
+  }
+
+  return vectors;
+}
+
+/**
+ * Agglomerative clustering using single-linkage.
+ * 
+ * Each article starts in its own cluster. We iteratively merge
+ * the two most similar clusters until no pair exceeds the threshold.
+ */
+function agglomerativeCluster(articles, vectors) {
+  // Initialize: each article is its own cluster
+  let clusters = articles.map((_, i) => [i]);
+
+  // Precompute pairwise similarity (only upper triangle)
+  const n = vectors.length;
+  const simCache = new Map();
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const sim = cosineSimilarity(vectors[i], vectors[j]);
+      if (sim >= SIMILARITY_THRESHOLD) {
+        simCache.set(`${i}-${j}`, sim);
+      }
+    }
+  }
+
+  // Iteratively merge most similar clusters
+  let merged = true;
+  while (merged) {
+    merged = false;
+    let bestSim = 0;
+    let bestI = -1;
+    let bestJ = -1;
+
+    for (let ci = 0; ci < clusters.length; ci++) {
+      for (let cj = ci + 1; cj < clusters.length; cj++) {
+        // Single-linkage: max similarity between any pair of articles in the two clusters
+        let maxSim = 0;
+        for (const ai of clusters[ci]) {
+          for (const aj of clusters[cj]) {
+            const key = ai < aj ? `${ai}-${aj}` : `${aj}-${ai}`;
+            const sim = simCache.get(key) || 0;
+            if (sim > maxSim) maxSim = sim;
+          }
+        }
+
+        if (maxSim > bestSim) {
+          bestSim = maxSim;
+          bestI = ci;
+          bestJ = cj;
+        }
+      }
+    }
+
+    if (bestSim >= SIMILARITY_THRESHOLD && bestI !== -1) {
+      // Merge cluster bestJ into bestI
+      clusters[bestI] = [...clusters[bestI], ...clusters[bestJ]];
+      clusters.splice(bestJ, 1);
+      merged = true;
+    }
+  }
+
+  return clusters;
+}
+
+/**
+ * Main clustering function.
+ * 
+ * Takes an array of articles and returns an array of story objects:
+ * {
+ *   representativeTitle: string,
+ *   category: string,
+ *   trendScore: number,
+ *   sourceCount: number,
+ *   sources: string[],
+ *   articleIndices: number[]
+ * }
+ */
+function clusterArticles(articles) {
+  if (!articles || articles.length === 0) return [];
+
+  console.log(`[Cluster] Vectorizing ${articles.length} articles...`);
+  const vectors = buildVectors(articles);
+
+  console.log(`[Cluster] Running agglomerative clustering (threshold=${SIMILARITY_THRESHOLD})...`);
+  const clusters = agglomerativeCluster(articles, vectors);
+
+  console.log(`[Cluster] Found ${clusters.length} story clusters from ${articles.length} articles`);
+
+  // Build story objects from clusters
+  const stories = clusters.map(articleIndices => {
+    const clusterArticles = articleIndices.map(i => articles[i]);
+
+    // Representative title: longest title (usually most descriptive)
+    const representativeTitle = clusterArticles
+      .sort((a, b) => (b.title || '').length - (a.title || '').length)[0].title;
+
+    // Category: most frequent in the cluster
+    const categoryCounts = {};
+    clusterArticles.forEach(a => {
+      const cat = a.category || 'national';
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+    const category = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])[0][0];
+
+    // Sources: unique source names
+    const sources = [...new Set(clusterArticles.map(a => a.source).filter(Boolean))];
+    const trendScore = sources.length;
+
+    return {
+      representativeTitle,
+      category,
+      trendScore,
+      sourceCount: trendScore,
+      sources,
+      articleIndices
+    };
+  });
+
+  // Log some stats
+  const multiSource = stories.filter(s => s.sourceCount > 1);
+  console.log(`[Cluster] ${multiSource.length} stories covered by multiple sources`);
+  if (multiSource.length > 0) {
+    const top = multiSource.sort((a, b) => b.trendScore - a.trendScore).slice(0, 3);
+    top.forEach(s => {
+      console.log(`  → "${s.representativeTitle.substring(0, 60)}..." (${s.sourceCount} sources: ${s.sources.join(', ')})`);
+    });
+  }
+
+  return stories;
+}
+
+module.exports = { clusterArticles };

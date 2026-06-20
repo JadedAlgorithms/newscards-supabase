@@ -10,8 +10,58 @@
     "category": "national"
   },
   {
+    "name": "Times of India",
+    "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "category": "national"
+  },
+  {
+    "name": "Hindustan Times - India",
+    "url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
+    "category": "national"
+  },
+  {
+    "name": "Mint",
+    "url": "https://www.livemint.com/rss/news",
+    "category": "national"
+  },
+  {
+    "name": "The Hindu - National",
+    "url": "https://www.thehindu.com/news/national/feeder/default.rss",
+    "category": "national"
+  },
+  {
     "name": "Reuters",
     "url": "https://news.google.com/rss/search?q=site%3Areuters.com&hl=en-US&gl=US&ceid=US%3Aen",
+    "category": "international"
+  },
+  {
+    "name": "The Hindu - International",
+    "url": "https://www.thehindu.com/news/international/feeder/default.rss",
+    "category": "international"
+  },
+  {
+    "name": "Al Jazeera",
+    "url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "category": "international"
+  },
+  {
+    "name": "The Guardian - World",
+    "url": "https://www.theguardian.com/world/rss",
+    "category": "international"
+  },
+  {
+    "name": "NPR News",
+    "url": "https://feeds.npr.org/1001/rss.xml",
+    "category": "international"
+  },
+  {
+    "name": "AP News",
+    "url": "https://news.google.com/rss/search?q=site%3Aapnews.com&hl=en-US&gl=US&ceid=US%3Aen",
+    "category": "international"
+  },
+  {
+    "name": "BBC - World",
+    "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
     "category": "international"
   },
   {
@@ -20,24 +70,24 @@
     "category": "business"
   },
   {
-    "name": "The Hindu - International",
-    "url": "https://www.thehindu.com/news/international/feeder/default.rss",
-    "category": "international"
+    "name": "CNBC - Business",
+    "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
+    "category": "business"
   },
   {
-    "name": "The Hindu - National",
-    "url": "https://www.thehindu.com/news/national/feeder/default.rss",
-    "category": "national"
+    "name": "BBC - Business",
+    "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+    "category": "business"
   },
   {
-    "name": "The Hindu - Science",
-    "url": "https://www.thehindu.com/sci-tech/science/feeder/default.rss",
-    "category": "science"
+    "name": "MarketWatch",
+    "url": "https://feeds.marketwatch.com/marketwatch/topstories",
+    "category": "business"
   },
   {
-    "name": "The Hindu - Sports",
-    "url": "https://www.thehindu.com/sport/feeder/default.rss",
-    "category": "sports"
+    "name": "Mint - Markets",
+    "url": "https://www.livemint.com/rss/markets",
+    "category": "business"
   },
   {
     "name": "The Hindu - Tech",
@@ -50,6 +100,76 @@
     "category": "tech"
   },
   {
+    "name": "CNBC - Tech",
+    "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
+    "category": "tech"
+  },
+  {
+    "name": "BBC - Tech",
+    "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "category": "tech"
+  },
+  {
+    "name": "TechCrunch",
+    "url": "https://techcrunch.com/feed/",
+    "category": "tech"
+  },
+  {
+    "name": "Ars Technica",
+    "url": "https://feeds.arstechnica.com/arstechnica/index",
+    "category": "tech"
+  },
+  {
+    "name": "The Verge",
+    "url": "https://www.theverge.com/rss/index.xml",
+    "category": "tech"
+  },
+  {
+    "name": "Wired",
+    "url": "https://www.wired.com/feed/rss",
+    "category": "tech"
+  },
+  {
+    "name": "ScienceDaily - Tech",
+    "url": "https://www.sciencedaily.com/rss/top/technology.xml",
+    "category": "tech"
+  },
+  {
+    "name": "The Hindu - Science",
+    "url": "https://www.thehindu.com/sci-tech/science/feeder/default.rss",
+    "category": "science"
+  },
+  {
+    "name": "ScienceDaily",
+    "url": "https://www.sciencedaily.com/rss/top/science.xml",
+    "category": "science"
+  },
+  {
+    "name": "BBC - Science",
+    "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    "category": "science"
+  },
+  {
+    "name": "Nature",
+    "url": "https://www.nature.com/nature.rss",
+    "category": "science"
+  },
+  {
+    "name": "NASA - Breaking News",
+    "url": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    "category": "science"
+  },
+  {
+    "name": "New Scientist",
+    "url": "https://www.newscientist.com/feed/home",
+    "category": "science"
+  },
+  {
+    "name": "The Hindu - Sports",
+    "url": "https://www.thehindu.com/sport/feeder/default.rss",
+    "category": "sports"
+  },
+  {
     "name": "NDTV Sports",
     "url": "https://sports.ndtv.com/rss/all",
     "category": "sports"
@@ -60,48 +180,43 @@
     "category": "sports"
   },
   {
-    "name": "CNBC - Tech",
-    "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
-    "category": "tech"
-  },
-  {
-    "name": "CNBC - Business",
-    "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
-    "category": "business"
-  },
-  {
-    "name": "ScienceDaily",
-    "url": "https://www.sciencedaily.com/rss/top/science.xml",
-    "category": "science"
-  },
-  {
-    "name": "ScienceDaily - Tech",
-    "url": "https://www.sciencedaily.com/rss/top/technology.xml",
-    "category": "tech"
-  },
-  {
-    "name": "BBC - World",
-    "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "category": "international"
-  },
-  {
-    "name": "BBC - Business",
-    "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
-    "category": "business"
-  },
-  {
-    "name": "BBC - Tech",
-    "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
-    "category": "tech"
-  },
-  {
-    "name": "BBC - Science",
-    "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
-    "category": "science"
-  },
-  {
     "name": "BBC - Sports",
     "url": "https://feeds.bbci.co.uk/news/sports/rss.xml",
     "category": "sports"
+  },
+  {
+    "name": "Variety",
+    "url": "https://variety.com/feed/",
+    "category": "entertainment"
+  },
+  {
+    "name": "Hollywood Reporter",
+    "url": "https://www.hollywoodreporter.com/feed/",
+    "category": "entertainment"
+  },
+  {
+    "name": "The Guardian - Health",
+    "url": "https://www.theguardian.com/society/health/rss",
+    "category": "international"
+  },
+  {
+    "name": "NPR - Health",
+    "url": "https://feeds.npr.org/1128/rss.xml",
+    "category": "international"
+  },
+  {
+    "name": "Politico",
+    "url": "https://www.politico.com/rss/politicopicks.xml",
+    "category": "international"
+  },
+  {
+    "name": "The Hill",
+    "url": "https://thehill.com/feed/",
+    "category": "international"
+  },
+  {
+    "name": "The Guardian - Politics",
+    "url": "https://www.theguardian.com/politics/rss",
+    "category": "international"
   }
 ]

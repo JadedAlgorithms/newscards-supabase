@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Flashcard from './Flashcard';
 
-export default function Deck({ articles, activeIndex, onNext, onPrev, direction }) {
+export default function Deck({ articles, activeIndex, onNext, onPrev, direction, stories, allArticles, onExpandStory }) {
   const [rotations, setRotations] = useState([]);
   const [exitingCard, setExitingCard] = useState(null);
   const [animatingDir, setAnimatingDir] = useState(direction);
@@ -93,6 +93,15 @@ export default function Deck({ articles, activeIndex, onNext, onPrev, direction 
     }
   };
 
+  /**
+   * Get the source count for an article by looking up its story.
+   */
+  const getSourceCount = (article) => {
+    if (!stories || !article.story_id) return 1;
+    const story = stories.find(s => s.id === article.story_id);
+    return story ? story.source_count : 1;
+  };
+
   const currentIdx = activeIndex % articles.length;
 
   const renderCards = () => {
@@ -119,12 +128,17 @@ export default function Deck({ articles, activeIndex, onNext, onPrev, direction 
           height: `${deckHeight}px`
         };
 
+        const article = articles[targetIdx];
+        const sourceCount = getSourceCount(article);
+
         cardsToRender.push(
           <Flashcard 
-            key={articles[targetIdx].id || `article-${targetIdx}`} 
-            article={articles[targetIdx]} 
+            key={article.id || `article-${targetIdx}`} 
+            article={article} 
             style={style}
             isTop={isTop}
+            sourceCount={sourceCount}
+            onExpandStory={isTop && sourceCount > 1 ? () => onExpandStory(article) : undefined}
           />
         );
       }
@@ -148,6 +162,7 @@ export default function Deck({ articles, activeIndex, onNext, onPrev, direction 
           article={exitingCard} 
           style={exitStyle}
           isTop={false} 
+          sourceCount={1}
         />
       );
     }
@@ -174,6 +189,7 @@ export default function Deck({ articles, activeIndex, onNext, onPrev, direction 
             key={`measure-${article.id || idx}`} 
             article={article} 
             style={{ position: 'relative', height: 'auto', visibility: 'hidden' }}
+            sourceCount={1}
           />
         ))}
       </div>

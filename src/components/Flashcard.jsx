@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Flashcard({ article, style, isTop }) {
+export default function Flashcard({ article, style, isTop, sourceCount, onExpandStory }) {
   // Generate a stable gradient based on the article ID
   const getGradient = (id = 'default') => {
     const colors = [
@@ -32,8 +32,37 @@ export default function Flashcard({ article, style, isTop }) {
   const titleSize = article.title?.length > 80 ? '1.4rem' : article.title?.length > 50 ? '1.6rem' : '1.8rem';
   const descSize = article.description?.length > 150 ? '0.85rem' : '1rem';
 
+  const handleCardClick = (e) => {
+    if (!isTop || !sourceCount || sourceCount <= 1 || !onExpandStory) return;
+    // Don't intercept clicks on the "More Info" button
+    if (e.target.closest('.more-info-btn')) return;
+    onExpandStory();
+  };
+
   return (
-    <div className="flashcard" style={cardStyle}>
+    <div
+      className="flashcard"
+      style={cardStyle}
+      onClick={handleCardClick}
+    >
+      {/* Source badge */}
+      {sourceCount > 1 && (
+        <div className="source-badge" title={`Covered by ${sourceCount} sources`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {sourceCount}
+        </div>
+      )}
+
+      {/* Source name label */}
+      {article.source && (
+        <div className="source-label">{article.source}</div>
+      )}
+
       <div className="card-content full-card">
         <h3 className="card-title" style={{ fontSize: titleSize }}>{article.title}</h3>
         {article.description && (
@@ -43,20 +72,33 @@ export default function Flashcard({ article, style, isTop }) {
         <div className="card-spacer"></div>
 
         <div className="card-actions">
-          <a 
-            href={article.link} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="more-info-btn inverse"
-            style={{ 
-              pointerEvents: isTop ? 'auto' : 'none',
-              backgroundColor: article.biasScore > 0.5 ? '#60a5fa' : article.biasScore < -0.5 ? '#f87171' : 'rgba(255, 255, 255, 0.2)',
-              color: (article.biasScore > 0.5 || article.biasScore < -0.5) ? '#111' : '#fff',
-              borderColor: (article.biasScore > 0.5 || article.biasScore < -0.5) ? 'transparent' : 'rgba(255, 255, 255, 0.3)'
-            }}
-          >
-            More Info
-          </a>
+          {sourceCount > 1 ? (
+            <button
+              className="more-info-btn inverse perspectives-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onExpandStory) onExpandStory();
+              }}
+              style={{ pointerEvents: isTop ? 'auto' : 'none' }}
+            >
+              {sourceCount} Perspectives
+            </button>
+          ) : (
+            <a 
+              href={article.link} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="more-info-btn inverse"
+              style={{ 
+                pointerEvents: isTop ? 'auto' : 'none',
+                backgroundColor: article.biasScore > 0.5 ? '#60a5fa' : article.biasScore < -0.5 ? '#f87171' : 'rgba(255, 255, 255, 0.2)',
+                color: (article.biasScore > 0.5 || article.biasScore < -0.5) ? '#111' : '#fff',
+                borderColor: (article.biasScore > 0.5 || article.biasScore < -0.5) ? 'transparent' : 'rgba(255, 255, 255, 0.3)'
+              }}
+            >
+              More Info
+            </a>
+          )}
         </div>
       </div>
     </div>
