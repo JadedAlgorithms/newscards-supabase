@@ -45,18 +45,43 @@ export default function Flashcard({ article, style, isTop, sourceCount, onExpand
       style={cardStyle}
       onClick={handleCardClick}
     >
-      {/* Source badge */}
-      {sourceCount > 1 && (
-        <div className="source-badge" title={`Covered by ${sourceCount} sources`}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          {sourceCount}
-        </div>
-      )}
+      <div className="top-right-badges">
+        {/* Source badge */}
+        {sourceCount > 1 && (
+          <div className="source-badge" title={`Covered by ${sourceCount} sources`}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            {sourceCount}
+          </div>
+        )}
+
+        {/* Sensationalism badge */}
+        {article.sensationalismLabel === 'sensational' ? (
+          <div className="sensational-badge" title={`Likelihood of sensational language: ${Math.min(99, Math.round(article.sensationalismScore * 100))}%`}>
+            ⚠️ May be sensational
+          </div>
+        ) : article.sensationalismLabel === 'non-sensational' || article.sensationalismLabel === 'neutral' ? (
+          <div className="neutral-badge" title={`Likelihood of neutral language: ${Math.min(99, Math.round((1 - article.sensationalismScore) * 100))}%`}>
+            ✅ Neutral
+          </div>
+        ) : null}
+
+        {/* Political lean badge */}
+        {article.politicalLeanLabel === 'left-leaning' && (
+          <div className="lean-badge lean-left-badge" title="May lean left — based on source editorial position">
+            🔵 May lean left
+          </div>
+        )}
+        {article.politicalLeanLabel === 'right-leaning' && (
+          <div className="lean-badge lean-right-badge" title="May lean right — based on source editorial position">
+            🔴 May lean right
+          </div>
+        )}
+      </div>
 
       {/* Source name label */}
       {article.source && (
@@ -91,9 +116,9 @@ export default function Flashcard({ article, style, isTop, sourceCount, onExpand
               className="more-info-btn inverse"
               style={{ 
                 pointerEvents: isTop ? 'auto' : 'none',
-                backgroundColor: article.biasScore > 0.5 ? '#60a5fa' : article.biasScore < -0.5 ? '#f87171' : 'rgba(255, 255, 255, 0.2)',
-                color: (article.biasScore > 0.5 || article.biasScore < -0.5) ? '#111' : '#fff',
-                borderColor: (article.biasScore > 0.5 || article.biasScore < -0.5) ? 'transparent' : 'rgba(255, 255, 255, 0.3)'
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: '#fff',
+                borderColor: 'rgba(255, 255, 255, 0.3)'
               }}
             >
               More Info

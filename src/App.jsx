@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase';
 import Deck from './components/Deck';
 import StoryExpander from './components/StoryExpander';
@@ -84,6 +84,10 @@ function App() {
           source: row.source,
           category: row.category,
           biasScore: row.bias_score,
+          sensationalismScore: row.sensationalism_score,
+          sensationalismLabel: row.sensationalism_label,
+          politicalLeanScore: row.political_lean_score,
+          politicalLeanLabel: row.political_lean_label,
           story_id: row.story_id || null
         };
       });
@@ -115,23 +119,23 @@ function App() {
     }
   };
 
-  const handleCategoryChange = (cat) => {
+  const handleCategoryChange = useCallback((cat) => {
     setActiveCategory(cat);
     setActiveIndex(0); // reset position when switching category
     setDirection('next');
-  };
+  }, []);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setDirection('next');
     setActiveIndex(prev => prev + 1);
-  };
+  }, []);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setDirection('prev');
     setActiveIndex(prev => prev === 0 ? currentCategoryNews.length - 1 : prev - 1);
-  };
+  }, [currentCategoryNews.length]);
 
-  const handleExpandStory = (article) => {
+  const handleExpandStory = useCallback((article) => {
     if (!article.story_id) return;
     const story = stories.find(s => s.id === article.story_id);
     if (!story) return;
@@ -140,12 +144,12 @@ function App() {
     const storyArticles = news.filter(a => a.story_id === article.story_id);
     setExpandedStory(story);
     setExpandedArticles(storyArticles);
-  };
+  }, [stories, news]);
 
-  const handleCloseExpander = () => {
+  const handleCloseExpander = useCallback(() => {
     setExpandedStory(null);
     setExpandedArticles([]);
-  };
+  }, []);
 
   useEffect(() => {
     fetchNews();
@@ -193,7 +197,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentCategoryNews.length, activeCategory, expandedStory]); // Re-bind if context changes
+  }, [currentCategoryNews.length, activeCategory, expandedStory, handleCategoryChange, handleNext, handlePrev, handleCloseExpander]); // Re-bind if context changes
 
   // Ensure we wrap for infinite iteration
   const safeIndex = currentCategoryNews.length > 0 ? (Math.abs(activeIndex) % currentCategoryNews.length) : 0;
@@ -258,29 +262,51 @@ function App() {
           onNext={handleNext}
           onPrev={handlePrev}
           stories={stories}
-          allArticles={news}
           onExpandStory={handleExpandStory}
         />
       )}
 
       {(() => {
         const article = currentCategoryNews[safeIndex];
-        if (!article || typeof article.biasScore === 'undefined') return null;
-        const absScore = Math.abs(article.biasScore);
-        if (absScore <= 0.5) return null;
+        if (!article) return null;
 
-        const isRight = article.biasScore > 0;
-        const biasType = absScore > 1.5 ? (isRight ? 'Strongly Right-leaning' : 'Strongly Left-leaning') : (isRight ? 'Right-leaning' : 'Left-leaning');
-        const biasDesc = isRight ? 'This article may favor conservative or traditional perspectives.' : 'This article may favor liberal or progressive perspectives.';
+        const badges = [];
 
-        return (
-          <div className={`bias-info-box ${isRight ? 'right' : 'left'}`}>
-            <div className="bias-type">
-              {biasType} <span className="bias-score-value">({article.biasScore})</span>
+        if (article.sensationalismLabel === 'sensational') {
+          const confidence = Math.min(99, Math.round(article.sensationalismScore * 100));
+          badges.push(
+            <div className="bias-info-box sensational" key="sensational">
+              <div className="bias-type">
+                ⚠️ May be sensational <span className="bias-score-value">({confidence}% confidence)</span>
+              </div>
+              <div className="bias-description">This article may be using emotional or exaggerated language common in clickbait.</div>
             </div>
-            <div className="bias-description">{biasDesc}</div>
-          </div>
-        );
+          );
+        }
+
+        if (article.politicalLeanLabel === 'left-leaning') {
+          badges.push(
+            <div className="bias-info-box lean-left" key="lean">
+              <div className="bias-type">
+                🔵 May lean left
+              </div>
+              <div className="bias-description">Based on the source's historical editorial position and language framing. Not a fact — a possibility.</div>
+            </div>
+          );
+        } else if (article.politicalLeanLabel === 'right-leaning') {
+          badges.push(
+            <div className="bias-info-box lean-right" key="lean">
+              <div className="bias-type">
+                🔴 May lean right
+              </div>
+              <div className="bias-description">Based on the source's historical editorial position and language framing. Not a fact — a possibility.</div>
+            </div>
+          );
+        }
+
+        if (badges.length === 0) return null;
+
+        return <div className="bias-info-stack">{badges}</div>;
       })()}
 
       {lastFetched && (
@@ -314,7 +340,10 @@ function App() {
                 Articles are automatically clustered into stories using TF-IDF similarity — so you can see the same event from multiple perspectives.
               </p>
               <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.8 }}>
-                <strong>Technical Note:</strong> The "Bias" detection uses simplified sentiment analysis (AFINN-165) and keyword-based categorization. Because it relies on word frequency rather than deep semantic understanding, it may occasionally misinterpret nuance, sarcasm, or neutral reporting as biased. Treat the bias scores as experimental indicators rather than absolute facts.
+                <strong>Technical Note:</strong> The "Sensationalism" detection uses a Naive Bayes classifier trained on ~38,000 headlines to identify clickbait and emotionally exaggerated language. It runs 100% offline via a custom Supabase Edge Function without relying on third-party LLM APIs.
+              </p>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.8 }}>
+                <strong>Political Lean:</strong> The "May lean left/right" indicator is source-heavy — it primarily uses each outlet's known editorial position from established media bias charts, with a minor secondary signal from unambiguous political framing keywords. It skips tech, science, sports, and entertainment entirely.
               </p>
             </div>
 

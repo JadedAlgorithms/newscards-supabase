@@ -2,6 +2,8 @@
  * Run the clustering migration against Supabase.
  * Creates the stories table and adds story_id to news.
  */
+// Supabase + Node 18 workaround for WebSocket
+global.WebSocket = require('ws');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -55,6 +57,54 @@ async function runMigration() {
     console.error('Error checking stories table:', storiesCheckError);
   } else {
     console.log('✓ Stories table already exists');
+  }
+
+  // Check if sensationalism columns exist on news table
+  const { data: newsSensTest, error: newsSensTestError } = await supabase
+    .from('news')
+    .select('sensationalism_score')
+    .limit(1);
+
+  if (newsSensTestError && newsSensTestError.message.includes('sensationalism_score')) {
+    console.log('\n⚠ The "sensationalism_score" column does not exist on the news table yet.');
+    console.log('Please run the following SQL in your Supabase SQL Editor:\n');
+    console.log('─'.repeat(60));
+    
+    const fs = require('fs');
+    const sql = fs.readFileSync(path.join(__dirname, 'migrations', '002_add_sensationalism.sql'), 'utf8');
+    console.log(sql);
+    
+    console.log('─'.repeat(60));
+    console.log('\nGo to: https://supabase.com/dashboard/project/kkyaufhmykxknbqirmqz/sql/new');
+    console.log('Paste the SQL above and click "Run".\n');
+  } else if (newsSensTestError) {
+    console.error('Error checking news table:', newsSensTestError);
+  } else {
+    console.log('✓ sensationalism_score column exists on news table');
+  }
+
+  // Check if political_lean_score column exists on news table
+  const { data: newsLeanTest, error: newsLeanTestError } = await supabase
+    .from('news')
+    .select('political_lean_score')
+    .limit(1);
+
+  if (newsLeanTestError && newsLeanTestError.message.includes('political_lean_score')) {
+    console.log('\n⚠ The "political_lean_score" column does not exist on the news table yet.');
+    console.log('Please run the following SQL in your Supabase SQL Editor:\n');
+    console.log('─'.repeat(60));
+    
+    const fs = require('fs');
+    const sql = fs.readFileSync(path.join(__dirname, 'migrations', '003_add_political_lean.sql'), 'utf8');
+    console.log(sql);
+    
+    console.log('─'.repeat(60));
+    console.log('\nGo to: https://supabase.com/dashboard/project/kkyaufhmykxknbqirmqz/sql/new');
+    console.log('Paste the SQL above and click "Run".\n');
+  } else if (newsLeanTestError) {
+    console.error('Error checking news table:', newsLeanTestError);
+  } else {
+    console.log('✓ political_lean_score column exists on news table');
   }
 
   // Check if story_id column exists on news table

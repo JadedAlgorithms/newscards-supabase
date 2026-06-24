@@ -520,27 +520,36 @@ body {
 }
 
 .bias-info-box {
-  position: absolute;
-  bottom: 80px; /* Above footer but overlaying card area/bottom */
-  left: 50%;
-  transform: translateX(-50%);
   width: 90%;
   max-width: 400px;
-  background: rgba(26, 26, 32, 0.9); /* More opaque to overlay clearly */
+  background: rgba(26, 26, 32, 0.9);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 1rem;
   text-align: center;
-  z-index: 150; /* Higher than card stack and nav buttons */
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   animation: biasFadeUp 0.3s ease-out;
   flex-shrink: 0;
 }
 
+/* Stacking container for multiple info boxes */
+.bias-info-stack {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 150;
+  width: 100%;
+}
+
 @keyframes biasFadeUp {
-  from { opacity: 0; transform: translate(-50%, 20px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .bias-info-box.right {
@@ -549,6 +558,28 @@ body {
 
 .bias-info-box.left {
   border-left: 4px solid #f87171;
+}
+
+/* Sensationalism info box */
+.bias-info-box.sensational {
+  border-left: 4px solid #f87171;
+}
+
+/* Political lean info boxes */
+.bias-info-box.lean-left {
+  border-left: 4px solid #60a5fa;
+}
+
+.bias-info-box.lean-left .bias-type {
+  color: #60a5fa;
+}
+
+.bias-info-box.lean-right {
+  border-left: 4px solid #f87171;
+}
+
+.bias-info-box.lean-right .bias-type {
+  color: #f87171;
 }
 
 .bias-type {
@@ -561,6 +592,7 @@ body {
 
 .bias-info-box.right .bias-type { color: #60a5fa; }
 .bias-info-box.left .bias-type { color: #f87171; }
+.bias-info-box.sensational .bias-type { color: #f87171; }
 
 .bias-score-value {
   color: rgba(255, 255, 255, 0.5);
@@ -579,10 +611,13 @@ body {
 }
 
 @media (max-width: 600px) {
-  .bias-info-box {
+  .bias-info-stack {
     max-width: 320px;
+    bottom: 70px;
+  }
+
+  .bias-info-box {
     padding: 0.8rem;
-    bottom: 70px; /* Adjusted for mobile footer */
   }
 
   /* Info Modal Mobile Adjustments */
@@ -614,11 +649,20 @@ body {
   }
 }
 
-/* Source Badge (top-right corner of card) */
-.source-badge {
+/* Top Right Badges Container */
+.top-right-badges {
   position: absolute;
   top: 12px;
   right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 5;
+}
+
+/* Source Badge */
+.source-badge {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
   color: #fff;
@@ -629,9 +673,67 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  z-index: 5;
   border: 1px solid rgba(255, 255, 255, 0.15);
   letter-spacing: 0.3px;
+}
+
+/* Sensationalism Badge */
+.sensational-badge {
+  background: rgba(239, 68, 68, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Neutral/Objective Badge */
+.neutral-badge {
+  background: rgba(34, 197, 94, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(100, 255, 100, 0.3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Political Lean Badges */
+.lean-badge {
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.lean-left-badge {
+  background: rgba(96, 165, 250, 0.7);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.lean-right-badge {
+  background: rgba(248, 113, 113, 0.7);
+  border: 1px solid rgba(248, 113, 113, 0.4);
 }
 
 /* Source Name Label (top-left corner of card) */

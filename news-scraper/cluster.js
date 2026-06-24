@@ -9,9 +9,23 @@
  * Each resulting cluster represents one "story" covered by one or more sources.
  */
 
-const natural = require('natural');
-const TfIdf = natural.TfIdf;
-const stopwords = natural.stopwords;
+// Lightweight stopword list
+const stopwords = new Set([
+  'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'aren', "aren't",
+  'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'cannot',
+  'could', 'couldn', "couldn't", 'did', 'didn', "didn't", 'do', 'does', 'doesn', "doesn't", 'doing', 'don', "don't",
+  'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'hadn', "hadn't", 'has', 'hasn', "hasn't",
+  'have', 'haven', "haven't", 'having', 'he', "he'd", "he'll", "he's", 'her', 'here', "here's", 'hers', 'herself',
+  'him', 'himself', 'his', 'how', "how's", 'i', "i'd", "i'll", "i'm", "i've", 'if', 'in', 'into', 'is', 'isn', "isn't",
+  'it', "it's", 'its', 'itself', 'let', "let's", 'me', 'more', 'most', 'mustn', "mustn't", 'my', 'myself', 'no',
+  'nor', 'not', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'ought', 'our', 'ours', 'ourselves', 'out', 'over',
+  'own', 'same', 'shan', "shan't", 'she', "she'd", "she'll", "she's", 'should', 'shouldn', "shouldn't", 'so', 'some',
+  'such', 'than', 'that', "that's", 'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', "there's", 'these',
+  'they', "they'd", "they'll", "they're", "they've", 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up',
+  'very', 'was', 'wasn', "wasn't", 'we', "we'd", "we'll", "we're", "we've", 'were', 'weren', "weren't", 'what', "what's",
+  'when', "when's", 'where', "where's", 'which', 'while', 'who', "who's", 'whom', 'why', "why's", 'with', 'won', "won't",
+  'would', 'wouldn', "wouldn't", 'you', "you'd", "you'll", "you're", "you've", 'your', 'yours', 'yourself', 'yourselves'
+]);
 
 // Similarity threshold: articles with cosine similarity >= this are grouped together.
 // 0.25 is intentionally permissive — catches same-story articles with different wording.
@@ -27,7 +41,7 @@ function tokenize(text) {
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 2 && !stopwords.includes(w));
+    .filter(w => w.length > 2 && !stopwords.has(w));
 }
 
 /**
@@ -52,26 +66,22 @@ function cosineSimilarity(vecA, vecB) {
 }
 
 /**
- * Build TF-IDF vectors for all articles.
+ * Build simple TF vectors (Term Frequency) for all articles.
+ * We'll use simple TF instead of TF-IDF to avoid the natural dependency.
  * Returns an array of { articleIndex, vector } objects.
  */
 function buildVectors(articles) {
-  const tfidf = new TfIdf();
-
-  // Add each article as a document
-  for (const article of articles) {
-    const text = `${article.title || ''} ${article.title || ''} ${article.description || ''}`;
-    // Title is doubled to weigh it more heavily — titles are the strongest signal for same-story matching
-    tfidf.addDocument(tokenize(text).join(' '));
-  }
-
-  // Extract TF-IDF vectors
   const vectors = [];
+
   for (let i = 0; i < articles.length; i++) {
+    const article = articles[i];
+    const text = `${article.title || ''} ${article.title || ''} ${article.description || ''}`;
+    const tokens = tokenize(text);
+    
     const vector = {};
-    tfidf.listTerms(i).forEach(item => {
-      vector[item.term] = item.tfidf;
-    });
+    for (const token of tokens) {
+      vector[token] = (vector[token] || 0) + 1;
+    }
     vectors.push(vector);
   }
 

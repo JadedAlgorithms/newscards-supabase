@@ -1,8 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Flashcard from './Flashcard';
 
-export default function Deck({ articles, activeIndex, onNext, onPrev, direction, stories, allArticles, onExpandStory }) {
-  const [rotations, setRotations] = useState([]);
+export default function Deck({ articles, activeIndex, onNext, onPrev, direction, stories, onExpandStory }) {
+  const rotations = useMemo(() => {
+    return articles.map(article => {
+      const str = article.id || article.title || '';
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const normalized = Math.abs(hash % 1000) / 1000;
+      return (normalized * 8) - 4; // stable rotation between -4deg and 4deg
+    });
+  }, [articles]);
   const [exitingCard, setExitingCard] = useState(null);
   const [animatingDir, setAnimatingDir] = useState(direction);
   
@@ -48,12 +58,6 @@ export default function Deck({ articles, activeIndex, onNext, onPrev, direction,
       setDeckHeight(finalHeight + 20);
     }
   }, [articles, measureWidth]);
-
-  useEffect(() => {
-    // Generate random rotations for each article to simulate a stacked deck
-    const newRots = articles.map(() => (Math.random() * 8) - 4); // -4deg to 4deg
-    setRotations(newRots);
-  }, [articles]);
 
   useEffect(() => {
     if (prevIndexRef.current !== activeIndex) {

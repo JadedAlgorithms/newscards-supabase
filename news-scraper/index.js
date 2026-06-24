@@ -1,4 +1,6 @@
 const Parser = require('rss-parser');
+// Supabase + Node 18 workaround for WebSocket
+global.WebSocket = require('ws');
 const { createClient } = require('@supabase/supabase-js');
 const cheerio = require('cheerio');
 const sanitizeHtml = require('sanitize-html');
@@ -49,19 +51,121 @@ function getSourceBias(sourceName) {
   return 0; // Default to center
 }
 
+// Political Lean Detection (source-heavy approach)
+// Only the most unambiguous domestic political framing keywords.
+// Each entry: [phrase, lean_nudge]. Negative = left nudge, positive = right nudge.
+const FRAMING_KEYWORDS = [
+  // Immigration framing
+  ['illegal aliens', 0.8],
+  ['illegal immigrants', 0.5],
+  ['undocumented workers', -0.5],
+  ['undocumented immigrants', -0.3],
+  // Economic framing
+  ['job creators', 0.5],
+  ['tax burden', 0.4],
+  ['wealth inequality', -0.5],
+  ['corporate greed', -0.6],
+  ['trickle down', -0.4],
+  ['free market', 0.4],
+  // Social policy framing
+  ['pro-life', 0.5],
+  ['pro-choice', -0.5],
+  ['gun rights', 0.5],
+  ['gun violence', -0.4],
+  ['gun control', -0.3],
+  ['second amendment', 0.4],
+  ['religious freedom', 0.4],
+  // Governance framing
+  ['big government', 0.5],
+  ['government overreach', 0.5],
+  ['social safety net', -0.4],
+  ['entitlement reform', 0.4],
+  ['welfare state', 0.4],
+  // Climate framing
+  ['climate crisis', -0.5],
+  ['climate alarmist', 0.5],
+  ['energy independence', 0.3],
+  ['green new deal', -0.5],
+];
+
+// Categories where political lean is not meaningful
+const NON_POLITICAL_CATEGORIES = new Set(['tech', 'science', 'sports', 'entertainment']);
+
+/**
+ * Detect political lean of an article.
+ * Returns { score, label } or null if category is non-political.
+ * 
+ * Source bias is the primary signal (weight: 1.0).
+ * Keyword framing is a secondary nudge (capped at ±1.0).
+ */
+function detectPoliticalLean(title, description, sourceBiasScore, category) {
+  if (NON_POLITICAL_CATEGORIES.has(category)) {
+    return null;
+  }
+
+  const fullText = `${title} ${description}`.toLowerCase();
+
+  // Sum keyword nudges, capped at ±1.0
+  let keywordNudge = 0;
+  for (const [phrase, nudge] of FRAMING_KEYWORDS) {
+    if (fullText.includes(phrase)) {
+      keywordNudge += nudge;
+    }
+  }
+  keywordNudge = Math.max(-1.0, Math.min(1.0, keywordNudge));
+
+  // Combined score: source bias (dominant) + keyword nudge (minor)
+  const combinedScore = sourceBiasScore + keywordNudge;
+  // Round to 2 decimal places
+  const score = Math.round(combinedScore * 100) / 100;
+
+  let label = 'neutral';
+  if (score <= -1.5) label = 'left-leaning';
+  else if (score >= 1.5) label = 'right-leaning';
+
+  return { score, label };
+}
+
 // Extensible Classifier structure
 class CategoryClassifier {
   constructor() {
     // Simple heuristic keyword lists to start with.
     // Structured so a trained NaiveBayes model could be dropped in easily here later.
     this.keywords = {
-      business: ['stock', 'market', 'economy', 'finance', 'bank', 'rupee', 'dollar', 'sensex', 'nifty', 'company', 'profit', 'investment', 'rbi', 'inflation'],
-      tech: ['app', 'software', 'apple', 'google', 'microsoft', 'cyber', 'digital', 'startup', 'ai', 'hardware', 'smartphone', 'tech', 'technology'],
-      science: ['space', 'isro', 'nasa', 'research', 'study', 'scientist', 'climate', 'moon', 'health', 'virus', 'biology', 'physics', 'cancer'],
-      international: ['biden', 'war', 'global', 'un ', 'china', 'usa', 'europe', 'ukraine', 'gaza', 'putin', 'world', 'israel', 'russia'],
-      sports: ['cricket', 'football', 'tennis', 'olympics', 'bcci', 'ipl', 'match', 'tournament', 'world cup', 'kohli', 'dhoni', 'messi', 'sport'],
-      national: ['india', 'delhi', 'mumbai', 'modi', 'parliament', 'congress', 'bjp', 'supreme court', 'states'],
-      entertainment: ['movie', 'film', 'bollywood', 'hollywood', 'actor', 'actress', 'celebrity', 'music', 'album', 'concert', 'streaming', 'netflix', 'disney', 'box office', 'tv show', 'series', 'oscar', 'grammy', 'emmy', 'entertainment']
+      business: ['stock', 'market', 'economy', 'finance', 'bank', 'rupee', 'dollar', 'sensex', 'nifty', 'company', 'profit', 'investment', 'rbi', 'inflation', 'gdp', 'tax', 'stocks', 'markets', 'earnings', 'corporate'],
+      tech: ['app', 'software', 'apple', 'google', 'microsoft', 'cyber', 'digital', 'startup', 'ai', 'hardware', 'smartphone', 'tech', 'technology', 'openai', 'meta', 'nvidia', 'cybersecurity', 'gadget', 'silicon'],
+      science: ['space', 'isro', 'nasa', 'research', 'study', 'scientist', 'climate', 'moon', 'health', 'virus', 'biology', 'physics', 'cancer', 'dna', 'orbit', 'galaxy', 'medical', 'disease', 'vaccine', 'planet'],
+      international: [
+        // Global Leaders & Figures
+        'biden', 'trump', 'putin', 'zelenskyy', 'netanyahu', 'macron', 'scholz', 'starmer', 'sunak', 'jinping',
+        'harris', 'obama', 'meloni', 'erdogan', 'kishida', 'albanese', 'trudeau', 'lula', 'ramaphosa', 'guterres',
+        // Major Nations & Territories
+        'usa', 'uk', 'united states', 'china', 'russia', 'ukraine', 'israel', 'palestine', 'palestinian',
+        'gaza', 'taiwan', 'pakistan', 'bangladesh', 'nepal', 'sri lanka', 'afghanistan', 'iran', 'iraq', 'syria',
+        'yemen', 'japan', 'korea', 'canada', 'australia', 'france', 'germany', 'italy', 'spain', 'mexico',
+        'brazil', 'turkey', 'egypt', 'saudi', 'uae', 'singapore', 'indonesia', 'malaysia', 'vietnam', 'thailand',
+        'philippines', 'switzerland', 'sweden', 'norway', 'finland', 'netherlands', 'belgium', 'poland', 'greece',
+        'portugal', 'south africa',
+        // Continents & Regions
+        'europe', 'asia', 'africa', 'americas', 'middle east', 'latin america', 'balkans',
+        // Institutions & Groups
+        'white house', 'pentagon', 'kremlin', 'nato', 'un', 'united nations', 'eu', 'european union', 'imf',
+        'world bank', 'who', 'wto', 'asean', 'brics', 'g20', 'g7', 'cop28', 'cop29',
+        // Major Global Cities
+        'london', 'washington', 'moscow', 'beijing', 'tokyo', 'paris', 'berlin', 'rome', 'madrid', 'kyiv',
+        'tehran', 'riyadh', 'dubai', 'seoul', 'sydney', 'toronto', 'geneva', 'brussels',
+        // Adjectives & General Terms
+        'american', 'british', 'chinese', 'russian', 'european', 'french', 'german', 'japanese', 'global',
+        'world', 'foreign', 'border', 'international', 'summit', 'overseas', 'bilateral'
+      ],
+      sports: ['cricket', 'football', 'tennis', 'olympics', 'bcci', 'ipl', 'match', 'tournament', 'world cup', 'kohli', 'dhoni', 'messi', 'sport', 'athlete', 'cup', 'trophy', 'score', 'stadium'],
+      national: [
+        'india', 'delhi', 'mumbai', 'bengaluru', 'chennai', 'kolkata', 'hyderabad', 'pune', 'kerala', 'karnataka',
+        'maharashtra', 'bihar', 'uttar pradesh', 'punjab', 'haryana', 'gujarat', 'rajasthan', 'kashmir',
+        'modi', 'gandhi', 'nehru', 'kejriwal', 'mamata', 'parliament', 'congress', 'bjp', 'supreme court',
+        'loksabha', 'rajyasabha', 'panchayat', 'ruling', 'opposition', 'union minister'
+      ],
+      entertainment: ['movie', 'film', 'bollywood', 'hollywood', 'actor', 'actress', 'celebrity', 'music', 'album', 'concert', 'streaming', 'netflix', 'disney', 'box office', 'tv show', 'series', 'oscar', 'grammy', 'emmy', 'entertainment', 'cinema', 'star', 'singer', 'song', 'theatre', 'drama']
     };
   }
 
@@ -127,13 +231,21 @@ async function scrapeFeed(source) {
       const fullText = `${title} ${description}`;
 
       // 2. NLP Categorization
-      const predictedCategory = classifier.predict(fullText, source.category);
+      let predictedCategory = classifier.predict(fullText, source.category);
+
+      // Prevent articles from non-national sources from being categorized under 'national'
+      if (source.category !== 'national' && predictedCategory === 'national') {
+        predictedCategory = source.category;
+      }
 
       // 3. Bias Scoring via Source Mapping
       const baseSourceName = source.name.split(' - ')[0];
       const biasScore = getSourceBias(baseSourceName);
 
-      // 4. Date Filter: Only current day's news (UTC-based for consistency with file naming)
+      // 4. Political Lean Detection (source-heavy)
+      const politicalLean = detectPoliticalLean(title, description, biasScore, predictedCategory);
+
+      // 5. Date Filter: Only current day's news (UTC-based for consistency with file naming)
       const todayStr = new Date().toISOString().split('T')[0];
       const pubDate = item.pubDate ? new Date(item.pubDate) : new Date();
       const pubDateStr = pubDate.toISOString().split('T')[0];
@@ -150,7 +262,9 @@ async function scrapeFeed(source) {
         pubDate: pubDate.toISOString(),
         source: source.name.split(' - ')[0],
         category: predictedCategory,
-        biasScore: biasScore
+        biasScore: biasScore,
+        politicalLeanScore: politicalLean ? politicalLean.score : null,
+        politicalLeanLabel: politicalLean ? politicalLean.label : null
       });
     }
     return parsedArticles;
@@ -170,6 +284,33 @@ async function run() {
   }
 
   console.log(`Total categorized & cleaned articles to save: ${allArticles.length}`);
+
+  // --- Classification Pipeline ---
+  if (supabase) {
+    console.log("\n--- Sensationalism Classification Pipeline ---");
+    try {
+      const articlesToClassify = allArticles.map(a => ({
+        title: a.title,
+        description: a.description
+      }));
+      
+      const { data, error } = await supabase.functions.invoke('detect-sensationalism', {
+        body: { articles: articlesToClassify }
+      });
+      
+      if (error) {
+        console.error("Error invoking edge function:", error);
+      } else if (data && data.results) {
+        data.results.forEach((result, idx) => {
+          allArticles[idx].sensationalism_score = result.score;
+          allArticles[idx].sensationalism_label = result.label;
+        });
+        console.log(`Successfully classified ${data.results.length} articles.`);
+      }
+    } catch (err) {
+      console.error("Failed to classify articles:", err);
+    }
+  }
 
   // --- Clustering Pipeline ---
   console.log("\n--- Clustering Pipeline ---");
@@ -267,6 +408,10 @@ async function run() {
           source: a.source,
           category: a.category,
           bias_score: a.biasScore,
+          sensationalism_score: a.sensationalism_score,
+          sensationalism_label: a.sensationalism_label,
+          political_lean_score: a.politicalLeanScore,
+          political_lean_label: a.politicalLeanLabel,
           story_id: storyId
         };
       });
