@@ -218,5 +218,30 @@
     "name": "The Guardian - Politics",
     "url": "https://www.theguardian.com/politics/rss",
     "category": "international"
+  },
+  {
+    "name": "Fox News - World",
+    "url": "https://moxie.foxnews.com/google-publisher/world.xml",
+    "category": "international"
+  },
+  {
+    "name": "Fox News - Politics",
+    "url": "https://moxie.foxnews.com/google-publisher/politics.xml",
+    "category": "international"
+  },
+  {
+    "name": "New York Post",
+    "url": "https://nypost.com/news/feed/",
+    "category": "international"
+  },
+  {
+    "name": "The Telegraph - World",
+    "url": "https://www.telegraph.co.uk/world-news/rss.xml",
+    "category": "international"
+  },
+  {
+    "name": "Washington Times",
+    "url": "https://www.washingtontimes.com/rss/headlines/news/politics/",
+    "category": "international"
   }
 ]

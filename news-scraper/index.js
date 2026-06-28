@@ -39,7 +39,11 @@ const SOURCE_BIAS = {
   "Variety": -1,
   "Hollywood Reporter": -1,
   "Politico": -1,
-  "The Hill": 0
+  "The Hill": 0,
+  "Fox News": 2,
+  "New York Post": 1.5,
+  "The Telegraph": 2,
+  "Washington Times": 2.5
 };
 
 function getSourceBias(sourceName) {
@@ -86,6 +90,21 @@ const FRAMING_KEYWORDS = [
   ['climate alarmist', 0.5],
   ['energy independence', 0.3],
   ['green new deal', -0.5],
+  // Trump & MAGA framing
+  ['make america great again', 0.8],
+  ['maga', 0.6],
+  ['trump administration success', 0.6],
+  ['witch hunt', 0.5],
+  ['fake news media', 0.6],
+  // Indian Govt / Modi framing
+  ['modi government success', 0.6],
+  ['historic decision by modi', 0.6],
+  ['vishwaguru', 0.5],
+  ['new india', 0.4],
+  ['sabka saath sabka vikas', 0.6],
+  ['surgical strike', 0.5],
+  ['masterstroke', 0.5],
+  ['bjp', 0.6]
 ];
 
 // Categories where political lean is not meaningful
