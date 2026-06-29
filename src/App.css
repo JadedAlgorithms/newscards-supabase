@@ -70,7 +70,7 @@ body {
 
 .pub-logo {
   font-family: var(--serif);
-  font-size: 18px;
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: 0.04em;
   color: var(--text);
@@ -102,7 +102,7 @@ body {
 
 .cat-btn {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
@@ -361,9 +361,9 @@ body {
   border-radius: 1px;
   background: linear-gradient(
     to right,
-    #3a6dc9 0%,
+    #b03a2e 0%,
     #6a6560 46%, #888 50%, #6a6560 54%,
-    #b03a2e 100%
+    #3a6dc9 100%
   );
   opacity: 0.85;
 }
@@ -897,7 +897,7 @@ body {
   }
 
   .pub-logo {
-    font-size: 15px;
+    font-size: 22px;
     padding: 10px 0;
   }
 
@@ -907,7 +907,7 @@ body {
   }
 
   .cat-btn {
-    font-size: 9px;
+    font-size: 12px;
     padding: 10px 10px;
   }
 
@@ -1025,7 +1025,7 @@ body {
   }
 
   .pub-logo {
-    font-size: 20px;
+    font-size: 28px;
     padding: 16px 0;
   }
 
@@ -1035,7 +1035,7 @@ body {
   }
 
   .cat-btn {
-    font-size: 11px;
+    font-size: 15px;
     padding: 16px 22px;
   }
 
@@ -1200,7 +1200,7 @@ body {
   }
 
   .pub-logo {
-    font-size: 24px;
+    font-size: 32px;
     padding: 18px 0;
   }
 
@@ -1210,7 +1210,7 @@ body {
   }
 
   .cat-btn {
-    font-size: 12px;
+    font-size: 16px;
     padding: 18px 28px;
   }
 }
