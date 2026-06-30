@@ -26,6 +26,8 @@ const SOURCE_BIAS = {
   "Mint": 0,
   "CNBC": 0,
   "MarketWatch": 0,
+  "Zee News": 1.5,
+  "Republic TV": 2,
   "TechCrunch": -1,
   "Ars Technica": -1,
   "The Verge": -1,
@@ -139,8 +141,8 @@ function detectPoliticalLean(title, description, sourceBiasScore, category) {
   const score = Math.round(combinedScore * 100) / 100;
 
   let label = 'neutral';
-  if (score <= -1.5) label = 'left-leaning';
-  else if (score >= 1.5) label = 'right-leaning';
+  if (score <= -0.8) label = 'left-leaning';
+  else if (score >= 0.8) label = 'right-leaning';
 
   return { score, label };
 }
@@ -312,11 +314,11 @@ async function run() {
         title: a.title,
         description: a.description
       }));
-      
+
       const { data, error } = await supabase.functions.invoke('detect-sensationalism', {
         body: { articles: articlesToClassify }
       });
-      
+
       if (error) {
         console.error("Error invoking edge function:", error);
       } else if (data && data.results) {
@@ -434,13 +436,14 @@ async function run() {
           story_id: storyId
         };
       });
+      const uniqueToInsert = Array.from(new Map(toInsert.map(a => [a.link, a])).values());
 
       const { error } = await supabase
         .from('news')
-        .upsert(toInsert, { onConflict: 'link', ignoreDuplicates: true });
+        .upsert(uniqueToInsert, { onConflict: 'link', ignoreDuplicates: true });
 
       if (error) throw error;
-      console.log(`Upserted ${toInsert.length} articles.`);
+      console.log(`Upserted ${uniqueToInsert.length} articles.`);
     } catch (error) {
       console.error("Error updating Supabase:", error);
     }
